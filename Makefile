@@ -1,14 +1,14 @@
-CFLAGS=-fPIC -O2 -I/usr/local/cuda/include
+CFLAGS=-fPIC -O2 -std=c++0x
 LDFLAGS=-shared -ldl
 
 LIB=cuda_malloc_hook.so
-OBJS=$(patsubst %.c,%.o,$(wildcard *.c))
+OBJS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 $(LIB): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.cpp
+	$(CXX) $(CFLAGS) -c -o $@ $<
 
 clean:
 	$(RM) $(LIB) $(OBJS)
