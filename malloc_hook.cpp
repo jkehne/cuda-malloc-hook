@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unordered_map>
+#include <string>
+#include <iostream>
 
 static uint32_t active_buffers = 0;
 static size_t total_memory = 0;
@@ -10,6 +12,10 @@ static std::unordered_map<void *, size_t> allocs;
 
 typedef int (*cuda_malloc_fp)(void**, size_t);
 typedef int (*cuda_free_fp)(void*);
+
+static void print_alloc_message(const std::string &str) {
+  std::cerr << str << " Total memory allocated: " << total_memory << ", active buffers:" << active_buffers << std::endl;
+}
 
 extern "C" {
 
@@ -21,7 +27,8 @@ int cudaMalloc(void **devPtr, size_t size) {
 
   active_buffers++;
   total_memory += size;
-  fprintf(stderr, "Allocating %lu bytes. Total memory allocated: %lu, active buffers: %u\n", size, total_memory, active_buffers);
+
+  print_alloc_message("Allocation request.");
 
   ret = orig_cuda_malloc(devPtr, size);
 
@@ -38,7 +45,7 @@ int cudaFree(void *ptr) {
   total_memory -= allocs[ptr];
   allocs.erase(ptr);
 
-  fprintf(stderr, "Freeing buffer. Total memory allocated: %lu, active buffers: %u\n", total_memory, active_buffers);
+  print_alloc_message("Free request.");
 
   return orig_cuda_free(ptr);
 }
