@@ -1,6 +1,5 @@
 #include <dlfcn.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <unordered_map>
 #include <string>
 #include <iostream>
