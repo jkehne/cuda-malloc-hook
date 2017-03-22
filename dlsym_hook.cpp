@@ -30,12 +30,13 @@ void *dlsym(void *handle, const char *symbol) {
 }
 
 void *dlopen(const char *filename, int flags) {
-  dlopen_fp real_dlopen;
+  static dlopen_fp real_dlopen = NULL;
 
   if (real_dlsym == NULL)
     real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(dlopen)));
 
-  real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
+  if (real_dlopen == NULL)
+    real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
 
   last_dlopen_handle = real_dlopen(filename, flags);
 

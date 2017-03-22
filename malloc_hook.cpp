@@ -27,8 +27,9 @@ extern "C" {
 int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
   int ret;
 
-  cuda_mem_alloc_v2_fp orig_cuda_mem_alloc_v2;
-  orig_cuda_mem_alloc_v2 = reinterpret_cast<cuda_mem_alloc_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAlloc_v2"));
+  static cuda_mem_alloc_v2_fp orig_cuda_mem_alloc_v2 = NULL;
+  if (orig_cuda_mem_alloc_v2 == NULL)
+    orig_cuda_mem_alloc_v2 = reinterpret_cast<cuda_mem_alloc_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAlloc_v2"));
 
   active_buffers++;
   total_memory += size;
@@ -45,8 +46,9 @@ int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
 int cuMemAllocManaged (uintptr_t *dptr, size_t size, unsigned int flags) {
   int ret;
 
-  cuda_mem_alloc_managed_fp orig_cuda_mem_alloc_managed;
-  orig_cuda_mem_alloc_managed = reinterpret_cast<cuda_mem_alloc_managed_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocManaged"));
+  static cuda_mem_alloc_managed_fp orig_cuda_mem_alloc_managed = NULL;
+  if (orig_cuda_mem_alloc_managed == NULL)
+    orig_cuda_mem_alloc_managed = reinterpret_cast<cuda_mem_alloc_managed_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocManaged"));
 
   active_buffers++;
   total_memory += size;
@@ -64,8 +66,9 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
   int ret;
   size_t size;
 
-  cuda_mem_alloc_pitch_v2_fp orig_cuda_mem_alloc_pitch_v2;
-  orig_cuda_mem_alloc_pitch_v2 = reinterpret_cast<cuda_mem_alloc_pitch_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocPitch_v2"));
+  static cuda_mem_alloc_pitch_v2_fp orig_cuda_mem_alloc_pitch_v2 = NULL;
+  if (orig_cuda_mem_alloc_pitch_v2 == NULL)
+    orig_cuda_mem_alloc_pitch_v2 = reinterpret_cast<cuda_mem_alloc_pitch_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocPitch_v2"));
 
   ret = orig_cuda_mem_alloc_pitch_v2(dptr, pPitch, WidthInBytes, Height, ElementSizeBytes);
 
@@ -82,8 +85,9 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
 }
 
 int cuMemFree_v2(uintptr_t ptr) {
-  cuda_mem_free_v2_fp orig_cuda_mem_free_v2;
-  orig_cuda_mem_free_v2 = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree_v2"));
+  static cuda_mem_free_v2_fp orig_cuda_mem_free_v2 = NULL;
+  if (orig_cuda_mem_free_v2 == NULL)
+    orig_cuda_mem_free_v2 = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree_v2"));
 
   active_buffers--;
   total_memory -= allocs[ptr];
