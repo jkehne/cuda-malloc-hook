@@ -3,9 +3,9 @@
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <cstdlib>
 
-static uint32_t active_buffers = 0;
-static size_t total_memory = 0;
+#include "stats.hpp"
 
 static std::unordered_map<uintptr_t, size_t> allocs;
 
@@ -18,8 +18,18 @@ typedef void *(*dlsym_fp)(void*, const char*);
 extern dlsym_fp real_dlsym;
 extern void *last_dlopen_handle;
 
+AllocStats stats;
+
 static void print_alloc_message(const std::string &str) {
-  std::cerr << str << " Total memory allocated: " << total_memory << ", active buffers:" << active_buffers << std::endl;
+  std::cerr << str << " Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
+}
+
+static void exit_handler() {
+  stats.print();
+}
+
+static __attribute__((constructor)) void install_exit_handler() {
+  std::atexit(exit_handler);
 }
 
 extern "C" {
@@ -31,9 +41,8 @@ int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
   if (orig_cuda_mem_alloc_v2 == NULL)
     orig_cuda_mem_alloc_v2 = reinterpret_cast<cuda_mem_alloc_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAlloc_v2"));
 
-  active_buffers++;
-  total_memory += size;
-
+  stats.recordAlloc(size);
+  
   print_alloc_message("Allocation request.");
 
   ret = orig_cuda_mem_alloc_v2(devPtr, size);
@@ -50,8 +59,7 @@ int cuMemAllocManaged (uintptr_t *dptr, size_t size, unsigned int flags) {
   if (orig_cuda_mem_alloc_managed == NULL)
     orig_cuda_mem_alloc_managed = reinterpret_cast<cuda_mem_alloc_managed_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocManaged"));
 
-  active_buffers++;
-  total_memory += size;
+  stats.recordAlloc(size);
 
   print_alloc_message("Allocation request.");
 
@@ -74,8 +82,7 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
 
   size = *pPitch * Height;
 
-  active_buffers++;
-  total_memory += size;
+  stats.recordAlloc(size);
 
   print_alloc_message("Allocation request.");
 
@@ -89,8 +96,7 @@ int cuMemFree_v2(uintptr_t ptr) {
   if (orig_cuda_mem_free_v2 == NULL)
     orig_cuda_mem_free_v2 = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree_v2"));
 
-  active_buffers--;
-  total_memory -= allocs[ptr];
+  stats.recordFree(allocs[ptr]);
   allocs.erase(ptr);
 
   print_alloc_message("Free request.");
