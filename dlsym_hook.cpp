@@ -9,11 +9,20 @@ typedef void *(*dlopen_fp)(const char*, int);
 extern std::unordered_map<std::string, void *> fps;
 
 dlsym_fp real_dlsym = NULL;
+dlopen_fp real_dlopen = NULL;
 void *last_dlopen_handle = NULL;
 
 extern "C" {
+  extern void *_dl_sym(void *, const char *, void *);
+}
 
-extern void *_dl_sym(void *, const char *, void *);
+static __attribute__((constructor)) void find_real_functions() {
+  real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(find_real_functions)));
+  real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
+}
+
+extern "C" {
+
 void *dlsym(void *handle, const char *symbol) {
   if (real_dlsym == NULL)
     real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(dlsym)));
@@ -30,17 +39,9 @@ void *dlsym(void *handle, const char *symbol) {
 }
 
 void *dlopen(const char *filename, int flags) {
-  static dlopen_fp real_dlopen = NULL;
-
-  if (real_dlsym == NULL)
-    real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(dlopen)));
-
-  if (real_dlopen == NULL)
-    real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
-
   last_dlopen_handle = real_dlopen(filename, flags);
 
   return last_dlopen_handle;
 }
 
-}
+} /* extern "C" */
