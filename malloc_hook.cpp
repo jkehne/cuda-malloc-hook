@@ -24,12 +24,8 @@ static void print_alloc_message(const std::string &str) {
   std::cerr << str << " Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
 }
 
-static void exit_handler() {
+static __attribute__((destructor)) void exit_handler() {
   stats.print();
-}
-
-static __attribute__((constructor)) void install_exit_handler() {
-  std::atexit(exit_handler);
 }
 
 extern "C" {
