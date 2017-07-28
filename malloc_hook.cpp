@@ -104,6 +104,8 @@ int cuMemFree_v2(uintptr_t ptr) {
   return orig_cuda_mem_free_v2(ptr);
 }
 
+} /* extern "C" */
+
 std::unordered_map<std::string, void *> fps = {
   {"cuMemAlloc_v2", reinterpret_cast<void *>(cuMemAlloc_v2)},
   {"cuMemAllocManaged", reinterpret_cast<void *>(cuMemAllocManaged)},
@@ -111,4 +113,3 @@ std::unordered_map<std::string, void *> fps = {
   {"cuMemFree_v2", reinterpret_cast<void *>(cuMemFree_v2)}
 };
 
-} /* extern "C" */
