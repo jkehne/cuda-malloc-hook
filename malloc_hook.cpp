@@ -21,8 +21,8 @@ extern void *last_dlopen_handle;
 
 AllocStats stats;
 
-static void print_alloc_message(const std::string &str) {
-  std::cerr << str << " Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
+static void print_alloc_message(const std::string &str, uintptr_t ptr, size_t size) {
+  std::cerr << str << " " << size << " Bytes allocated at address 0x" << std::hex << ptr << std::dec << ". Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
 }
 
 static destructor void exit_handler() {
@@ -40,9 +40,9 @@ int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
 
   stats.recordAlloc(size);
   
-  print_alloc_message("Allocation request.");
-
   ret = orig_cuda_mem_alloc_v2(devPtr, size);
+
+  print_alloc_message("Allocation request.", *devPtr, size);
 
   allocs[*devPtr] = size;
 
@@ -58,9 +58,9 @@ int cuMemAllocManaged (uintptr_t *dptr, size_t size, unsigned int flags) {
 
   stats.recordAlloc(size);
 
-  print_alloc_message("Allocation request.");
-
   ret = orig_cuda_mem_alloc_managed(dptr, size, flags);
+
+  print_alloc_message("Allocation request.", *dptr, size);
 
   allocs[*dptr] = size;
 
@@ -81,7 +81,7 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
 
   stats.recordAlloc(size);
 
-  print_alloc_message("Allocation request.");
+  print_alloc_message("Allocation request.", *dptr, size);
 
   allocs[*dptr] = size;
 
@@ -93,10 +93,15 @@ int cuMemFree_v2(uintptr_t ptr) {
   if (orig_cuda_mem_free_v2 == NULL)
     orig_cuda_mem_free_v2 = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree_v2"));
 
-  stats.recordFree(allocs[ptr]);
-  allocs.erase(ptr);
+  try {
+    print_alloc_message("Free request.", ptr, allocs.at(ptr));
 
-  print_alloc_message("Free request.");
+    stats.recordFree(allocs.at(ptr));
+    allocs.erase(ptr);
+  }
+  catch(std::out_of_range) {
+    std::cout << "WARNING: Unmatched cuMemFree at address 0x" << std::hex << ptr << std::dec << std::endl;
+  }
 
   return orig_cuda_mem_free_v2(ptr);
 }
