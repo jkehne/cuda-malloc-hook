@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include "globals.hpp"
+
 typedef void *(*dlsym_fp)(void*, const char*);
 typedef void *(*dlopen_fp)(const char*, int);
 
@@ -16,7 +18,7 @@ extern "C" {
   extern void *_dl_sym(void *, const char *, void *);
 }
 
-static __attribute__((constructor)) void find_real_functions() {
+static constructor void find_real_functions() {
   real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(find_real_functions)));
   real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
 }

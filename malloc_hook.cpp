@@ -6,14 +6,15 @@
 #include <cstdlib>
 
 #include "stats.hpp"
-
-static std::unordered_map<uintptr_t, size_t> allocs;
+#include "globals.hpp"
 
 typedef int (*cuda_mem_alloc_v2_fp)(uintptr_t*, size_t);
 typedef int (*cuda_mem_alloc_managed_fp)(uintptr_t*, size_t, unsigned int);
 typedef int (*cuda_mem_alloc_pitch_v2_fp)(uintptr_t*, size_t*, size_t, size_t, unsigned int);
 typedef int (*cuda_mem_free_v2_fp)(uintptr_t ptr);
 typedef void *(*dlsym_fp)(void*, const char*);
+
+static std::unordered_map<uintptr_t, size_t> allocs;
 
 extern dlsym_fp real_dlsym;
 extern void *last_dlopen_handle;
@@ -24,7 +25,7 @@ static void print_alloc_message(const std::string &str) {
   std::cerr << str << " Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
 }
 
-static __attribute__((destructor)) void exit_handler() {
+static destructor void exit_handler() {
   stats.print();
 }
 
