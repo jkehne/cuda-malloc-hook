@@ -8,12 +8,12 @@ class AllocStats {
 private:
   uint32_t totalAllocatedBuffers;
   uint32_t totalFreedBuffers;
-  uint32_t totalAllocatedMemory;
-  uint32_t totalFreedMemory;
+  size_t totalAllocatedMemory;
+  size_t totalFreedMemory;
   uint32_t liveBuffers;
-  uint32_t liveMemory;
-  uint32_t peakMemory;
+  size_t liveMemory;
   uint32_t peakBuffers;
+  size_t peakMemory;
   std::mutex statsMutex;
 
 public:
@@ -21,8 +21,8 @@ public:
   void recordFree(size_t);
   void print();
 
-  uint32_t getCurrentMemory();
-  uint32_t getCurrentBuffers();
+  size_t getCurrentMemory();
+  size_t getCurrentBuffers();
 };
 
 #endif /* STATS_H */

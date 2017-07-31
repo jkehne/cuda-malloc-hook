@@ -44,10 +44,10 @@ void AllocStats::print() {
   std::cout << "Peak # of buffers:       " << peakBuffers << std::endl;
 }
 
-uint32_t AllocStats::getCurrentMemory() {
+size_t AllocStats::getCurrentMemory() {
   return liveMemory;
 }
 
-uint32_t AllocStats::getCurrentBuffers() {
+size_t AllocStats::getCurrentBuffers() {
   return liveBuffers;
 }
