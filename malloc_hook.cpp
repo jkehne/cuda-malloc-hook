@@ -25,6 +25,24 @@ static void print_alloc_message(const std::string &str, uintptr_t ptr, size_t si
   std::cerr << str << " " << size << " Bytes allocated at address 0x" << std::hex << ptr << std::dec << ". Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
 }
 
+static void keep_stats_alloc(AllocStats &stats, uintptr_t ptr, size_t size) {
+  stats.recordAlloc(size);
+  print_alloc_message("Allocation request.", ptr, size);
+  allocs[ptr] = size;
+}
+
+static void keep_stats_free(AllocStats &stats, uintptr_t ptr) {
+  try {
+    print_alloc_message("Free request.", ptr, allocs.at(ptr));
+
+    stats.recordFree(allocs.at(ptr));
+    allocs.erase(ptr);
+  }
+  catch(std::out_of_range) {
+    std::cout << "WARNING: Unmatched cuMemFree at address 0x" << std::hex << ptr << std::dec << std::endl;
+  }
+}
+
 static destructor void exit_handler() {
   stats.print();
 }
@@ -38,13 +56,9 @@ int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
   if (orig_cuda_mem_alloc_v2 == NULL)
     orig_cuda_mem_alloc_v2 = reinterpret_cast<cuda_mem_alloc_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAlloc_v2"));
 
-  stats.recordAlloc(size);
-  
   ret = orig_cuda_mem_alloc_v2(devPtr, size);
 
-  print_alloc_message("Allocation request.", *devPtr, size);
-
-  allocs[*devPtr] = size;
+  keep_stats_alloc(stats, *devPtr, size);
 
   return ret;
 }
@@ -56,13 +70,9 @@ int cuMemAllocManaged (uintptr_t *dptr, size_t size, unsigned int flags) {
   if (orig_cuda_mem_alloc_managed == NULL)
     orig_cuda_mem_alloc_managed = reinterpret_cast<cuda_mem_alloc_managed_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocManaged"));
 
-  stats.recordAlloc(size);
-
   ret = orig_cuda_mem_alloc_managed(dptr, size, flags);
 
-  print_alloc_message("Allocation request.", *dptr, size);
-
-  allocs[*dptr] = size;
+  keep_stats_alloc(stats, *dptr, size);
 
   return ret;
 }
@@ -79,11 +89,7 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
 
   size = *pPitch * Height;
 
-  stats.recordAlloc(size);
-
-  print_alloc_message("Allocation request.", *dptr, size);
-
-  allocs[*dptr] = size;
+  keep_stats_alloc(stats, *dptr, size);
 
   return ret;
 }
@@ -93,15 +99,7 @@ int cuMemFree_v2(uintptr_t ptr) {
   if (orig_cuda_mem_free_v2 == NULL)
     orig_cuda_mem_free_v2 = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree_v2"));
 
-  try {
-    print_alloc_message("Free request.", ptr, allocs.at(ptr));
-
-    stats.recordFree(allocs.at(ptr));
-    allocs.erase(ptr);
-  }
-  catch(std::out_of_range) {
-    std::cout << "WARNING: Unmatched cuMemFree at address 0x" << std::hex << ptr << std::dec << std::endl;
-  }
+  keep_stats_free(stats, ptr);
 
   return orig_cuda_mem_free_v2(ptr);
 }
