@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unistd.h>
 
 #include "stats.hpp"
 
@@ -30,7 +29,6 @@ void AllocStats::recordFree(size_t size) {
 void AllocStats::print() {
   std::lock_guard<std::mutex> guard(statsMutex);
 
-  std::cout << "Allocation stats for Process " << getpid() << std::endl;
   std::cout << "Total buffers allocated: " << totalAllocatedBuffers << std::endl;
   std::cout << "Total buffers freed:     " << totalFreedBuffers << std::endl;
 
