@@ -63,6 +63,20 @@ int cuMemAlloc_v2(uintptr_t *devPtr, size_t size) {
   return ret;
 }
 
+int cuMemAlloc(uintptr_t *devPtr, size_t size) {
+  int ret;
+
+  static cuda_mem_alloc_v2_fp orig_cuda_mem_alloc = NULL;
+  if (orig_cuda_mem_alloc == NULL)
+    orig_cuda_mem_alloc = reinterpret_cast<cuda_mem_alloc_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAlloc"));
+
+  ret = orig_cuda_mem_alloc(devPtr, size);
+
+  keep_stats_alloc(stats, *devPtr, size);
+
+  return ret;
+}
+
 int cuMemAllocManaged (uintptr_t *dptr, size_t size, unsigned int flags) {
   int ret;
 
@@ -94,6 +108,23 @@ int cuMemAllocPitch_v2 (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, si
   return ret;
 }
 
+int cuMemAllocPitch (uintptr_t* dptr, size_t* pPitch, size_t WidthInBytes, size_t Height, unsigned int  ElementSizeBytes) {
+  int ret;
+  size_t size;
+
+  static cuda_mem_alloc_pitch_v2_fp orig_cuda_mem_alloc_pitch = NULL;
+  if (orig_cuda_mem_alloc_pitch == NULL)
+    orig_cuda_mem_alloc_pitch = reinterpret_cast<cuda_mem_alloc_pitch_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemAllocPitch"));
+
+  ret = orig_cuda_mem_alloc_pitch(dptr, pPitch, WidthInBytes, Height, ElementSizeBytes);
+
+  size = *pPitch * Height;
+
+  keep_stats_alloc(stats, *dptr, size);
+
+  return ret;
+}
+
 int cuMemFree_v2(uintptr_t ptr) {
   static cuda_mem_free_v2_fp orig_cuda_mem_free_v2 = NULL;
   if (orig_cuda_mem_free_v2 == NULL)
@@ -104,12 +135,25 @@ int cuMemFree_v2(uintptr_t ptr) {
   return orig_cuda_mem_free_v2(ptr);
 }
 
+int cuMemFree(uintptr_t ptr) {
+  static cuda_mem_free_v2_fp orig_cuda_mem_free = NULL;
+  if (orig_cuda_mem_free == NULL)
+    orig_cuda_mem_free = reinterpret_cast<cuda_mem_free_v2_fp>(real_dlsym(last_dlopen_handle, "cuMemFree"));
+
+  keep_stats_free(stats, ptr);
+
+  return orig_cuda_mem_free(ptr);
+}
+
 } /* extern "C" */
 
 std::unordered_map<std::string, void *> fps = {
   {"cuMemAlloc_v2", reinterpret_cast<void *>(cuMemAlloc_v2)},
+  {"cuMemAlloc", reinterpret_cast<void *>(cuMemAlloc)},
   {"cuMemAllocManaged", reinterpret_cast<void *>(cuMemAllocManaged)},
   {"cuMemAllocPitch_v2", reinterpret_cast<void *>(cuMemAllocPitch_v2)},
-  {"cuMemFree_v2", reinterpret_cast<void *>(cuMemFree_v2)}
+  {"cuMemAllocPitch", reinterpret_cast<void *>(cuMemAllocPitch)},
+  {"cuMemFree_v2", reinterpret_cast<void *>(cuMemFree_v2)},
+  {"cuMemFree", reinterpret_cast<void *>(cuMemFree)}
 };
 
