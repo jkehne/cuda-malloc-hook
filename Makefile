@@ -1,5 +1,5 @@
 CFLAGS=-fPIC -O2 -std=c++0x
-LDFLAGS=-shared -ldl
+LDFLAGS=-shared -Wl,--no-as-needed -ldl
 
 LIB=cuda_malloc_hook.so
 OBJS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
