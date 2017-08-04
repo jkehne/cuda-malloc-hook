@@ -15,15 +15,8 @@ dlopen_fp real_dlopen = NULL;
 void *last_dlopen_handle = NULL;
 
 extern "C" {
-  extern void *_dl_sym(void *, const char *, void *);
-}
 
-static constructor void find_real_functions() {
-  real_dlsym = reinterpret_cast<dlsym_fp>(_dl_sym(RTLD_NEXT, "dlsym", reinterpret_cast<void *>(find_real_functions)));
-  real_dlopen = reinterpret_cast<dlopen_fp>(real_dlsym(RTLD_NEXT, "dlopen"));
-}
-
-extern "C" {
+extern void *_dl_sym(void *, const char *, void *);
 
 void *dlsym(void *handle, const char *symbol) {
   if (real_dlsym == NULL)
@@ -41,6 +34,9 @@ void *dlsym(void *handle, const char *symbol) {
 }
 
 void *dlopen(const char *filename, int flags) {
+  if (real_dlopen == NULL)
+    real_dlopen = reinterpret_cast<dlopen_fp>(_dl_sym(RTLD_NEXT, "dlopen", reinterpret_cast<void *>(dlopen)));
+
   last_dlopen_handle = real_dlopen(filename, flags);
 
   return last_dlopen_handle;
