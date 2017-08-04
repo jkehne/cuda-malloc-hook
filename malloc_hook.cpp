@@ -1,6 +1,7 @@
 #include <dlfcn.h>
 #include <stdint.h>
 #include <unordered_map>
+#include <map>
 #include <string>
 #include <iostream>
 #include <cstdlib>
@@ -229,7 +230,7 @@ int cuMemFreeHost(void *ptr) {
 
 } /* extern "C" */
 
-std::unordered_map<std::string, void *> fps = {
+std::map<std::string, void *> fps = {
   {"cuMemAlloc_v2", reinterpret_cast<void *>(cuMemAlloc_v2)},
   {"cuMemAlloc", reinterpret_cast<void *>(cuMemAlloc)},
   {"cuMemAllocManaged", reinterpret_cast<void *>(cuMemAllocManaged)},
