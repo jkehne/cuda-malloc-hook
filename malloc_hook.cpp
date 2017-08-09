@@ -1,11 +1,12 @@
 #include <dlfcn.h>
-#include <stdint.h>
+#include <cstdint>
 #include <unordered_map>
 #include <map>
 #include <string>
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+#include <atomic>
 
 #include "stats.hpp"
 #include "globals.hpp"
@@ -17,6 +18,7 @@ typedef int (*cuda_mem_free_v2_fp)(uintptr_t);
 typedef int (*cuda_mem_alloc_host_v2_fp)(void **, size_t);
 typedef int (*cuda_mem_free_host_fp)(void *);
 typedef int (*cuda_mem_host_alloc_fp)(void **, size_t, unsigned int);
+typedef int (*cuda_launch_kernel_fp) (void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, void *, void**, void**); 
 typedef void *(*dlsym_fp)(void*, const char*);
 
 static std::unordered_map<uintptr_t, size_t> allocs;
@@ -27,6 +29,7 @@ extern void *last_dlopen_handle;
 
 AllocStats stats;
 AllocStats host_stats;
+std::atomic<std::uint64_t> launched_kernels;
 
 static void print_alloc_message(const std::string &str, AllocStats &stats, uintptr_t ptr, size_t size) {
   std::cerr << str << " " << size << " Bytes allocated at address 0x" << std::hex << ptr << std::dec << ". Total memory allocated: " << stats.getCurrentMemory() << ", active buffers:" << stats.getCurrentBuffers() << std::endl;
@@ -75,6 +78,7 @@ static destructor void exit_handler() {
   stats.print();
   std::cout << std::endl << "SYSRAM:" << std::endl;
   host_stats.print();
+  std::cout << std::endl << "Kernels launched: " << launched_kernels << std::endl;
 }
 
 extern "C" {
@@ -227,6 +231,15 @@ int cuMemFreeHost(void *ptr) {
   return orig_cuda_mem_free_host(ptr);
 }
 
+int cuLaunchKernel ( void * f, unsigned int  gridDimX, unsigned int  gridDimY, unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY, unsigned int  blockDimZ, unsigned int  sharedMemBytes, void * hStream, void** kernelParams, void** extra ) {
+  static cuda_launch_kernel_fp orig_cuda_launch_kernel = NULL;
+  if (orig_cuda_launch_kernel == NULL)
+    orig_cuda_launch_kernel = reinterpret_cast<cuda_launch_kernel_fp>(real_dlsym(last_dlopen_handle, "cuLaunchKernel"));
+
+  launched_kernels++;
+
+  return orig_cuda_launch_kernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+}
 
 } /* extern "C" */
 
@@ -241,6 +254,7 @@ std::map<std::string, void *> fps = {
   {"cuMemAllocHost_v2", reinterpret_cast<void *>(cuMemAllocHost_v2)},
   {"cuMemAllocHost", reinterpret_cast<void *>(cuMemAllocHost)},
   {"cuMemHostAlloc", reinterpret_cast<void *>(cuMemHostAlloc)},
-  {"cuMemFreeHost", reinterpret_cast<void *>(cuMemFreeHost)}
+  {"cuMemFreeHost", reinterpret_cast<void *>(cuMemFreeHost)},
+  {"cuLaunchKernel", reinterpret_cast<void *>(cuLaunchKernel)}
 };
 
