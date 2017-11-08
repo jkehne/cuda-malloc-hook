@@ -241,6 +241,16 @@ int cuLaunchKernel ( void * f, unsigned int  gridDimX, unsigned int  gridDimY, u
   return orig_cuda_launch_kernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
 }
 
+  int cuLaunchKernel_ptsz ( void * f, unsigned int  gridDimX, unsigned int  gridDimY, unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY, unsigned int  blockDimZ, unsigned int  sharedMemBytes, void * hStream, void** kernelParams, void** extra ) {
+  static cuda_launch_kernel_fp orig_cuda_launch_kernel_ptsz = NULL;
+  if (orig_cuda_launch_kernel_ptsz == NULL)
+    orig_cuda_launch_kernel_ptsz = reinterpret_cast<cuda_launch_kernel_fp>(real_dlsym(last_dlopen_handle, "cuLaunchKernel_ptsz"));
+
+  launched_kernels++;
+
+  return orig_cuda_launch_kernel_ptsz(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+}
+
 } /* extern "C" */
 
 std::map<std::string, void *> fps = {
@@ -255,6 +265,7 @@ std::map<std::string, void *> fps = {
   {"cuMemAllocHost", reinterpret_cast<void *>(cuMemAllocHost)},
   {"cuMemHostAlloc", reinterpret_cast<void *>(cuMemHostAlloc)},
   {"cuMemFreeHost", reinterpret_cast<void *>(cuMemFreeHost)},
-  {"cuLaunchKernel", reinterpret_cast<void *>(cuLaunchKernel)}
+  {"cuLaunchKernel", reinterpret_cast<void *>(cuLaunchKernel)},
+  {"cuLaunchKernel_ptsz", reinterpret_cast<void *>(cuLaunchKernel_ptsz)}
 };
 
