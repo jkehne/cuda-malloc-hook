@@ -4,6 +4,7 @@
 #include <map>
 
 #include "globals.hpp"
+#include "generic_hook.hpp"
 
 typedef void *(*dlsym_fp)(void*, const char*);
 typedef void *(*dlopen_fp)(const char*, int);
@@ -27,7 +28,9 @@ void *dlsym(void *handle, const char *symbol) {
     ret = fps.at(symbol);
   }
   catch(std::out_of_range) {
-    ret = real_dlsym(handle, symbol);    
+    void *real_fp = real_dlsym(handle, symbol);
+    ret = make_generic_hook(symbol, real_fp);
+    fps[symbol] = ret;
   }
 
   return ret;
