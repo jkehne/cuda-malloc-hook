@@ -29,8 +29,11 @@ void *dlsym(void *handle, const char *symbol) {
   }
   catch(std::out_of_range) {
     void *real_fp = real_dlsym(handle, symbol);
-    ret = make_generic_hook(symbol, real_fp);
-    fps[symbol] = ret;
+    if (symbol[0] == 'c' && symbol[1] == 'u') {
+      ret = make_generic_hook(symbol, real_fp);
+      fps[symbol] = ret;
+    } else
+      ret = real_fp;
   }
 
   return ret;
