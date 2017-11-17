@@ -1,15 +1,13 @@
 #include <dlfcn.h>
 #include <string>
 #include <stdexcept>
-#include <map>
 
 #include "globals.hpp"
 #include "generic_hook.hpp"
+#include "dlsym_hook.hpp"
+#include "malloc_hook.hpp"
 
-typedef void *(*dlsym_fp)(void*, const char*);
 typedef void *(*dlopen_fp)(const char*, int);
-
-extern std::map<std::string, void *> fps;
 
 dlsym_fp real_dlsym = NULL;
 dlopen_fp real_dlopen = NULL;

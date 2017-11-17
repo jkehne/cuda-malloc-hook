@@ -3,11 +3,12 @@ LDFLAGS=-shared -Wl,--no-as-needed -ldl
 
 LIB=cuda_malloc_hook.so
 OBJS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
+HEADERS=$(wildcard *.hpp)
 
 $(LIB): $(OBJS)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-%.o: %.cpp
+%.o: %.cpp $(HEADERS)
 	$(CXX) $(CFLAGS) -c -o $@ $<
 
 clean:

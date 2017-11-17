@@ -8,8 +8,9 @@
 #include <unistd.h>
 #include <atomic>
 
-#include "stats.hpp"
 #include "globals.hpp"
+#include "stats.hpp"
+#include "dlsym_hook.hpp"
 
 typedef int (*cuda_mem_alloc_v2_fp)(uintptr_t*, size_t);
 typedef int (*cuda_mem_alloc_managed_fp)(uintptr_t*, size_t, unsigned int);
@@ -19,13 +20,9 @@ typedef int (*cuda_mem_alloc_host_v2_fp)(void **, size_t);
 typedef int (*cuda_mem_free_host_fp)(void *);
 typedef int (*cuda_mem_host_alloc_fp)(void **, size_t, unsigned int);
 typedef int (*cuda_launch_kernel_fp) (void *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, void *, void**, void**); 
-typedef void *(*dlsym_fp)(void*, const char*);
 
 static std::unordered_map<uintptr_t, size_t> allocs;
 static std::unordered_map<void *, size_t> host_allocs;
-
-extern dlsym_fp real_dlsym;
-extern void *last_dlopen_handle;
 
 AllocStats stats;
 AllocStats host_stats;
@@ -268,4 +265,3 @@ std::map<std::string, void *> fps = {
   {"cuLaunchKernel", reinterpret_cast<void *>(cuLaunchKernel)},
   {"cuLaunchKernel_ptsz", reinterpret_cast<void *>(cuLaunchKernel_ptsz)}
 };
-
